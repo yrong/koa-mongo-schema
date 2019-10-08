@@ -116,9 +116,9 @@ describe('scirichon-crud-handler', () => {
   })
 
   it('add physicalServer with wrong parameter test_date(must be timestamp not empty) failed', async () => {
-    let bakServer = Object.assign({}, physicalServer, { model: 'b12', test_date: '', name: 'bak', uuid: uuid.v1(), ip_address: ['192.168.0.107'] })
+    let bakServer = Object.assign({}, physicalServer, { model: 'b12', test_date: 'abc', name: 'bak', uuid: uuid.v1(), ip_address: ['192.168.0.107'] })
     let response = await request.post(`/api/cfgItems`).send(getBody(bakServer)).set(tokenHeaderName, internalToken)
-    assert.equal(response.statusCode, 501)
+    assert.equal(response.statusCode, 400)
     // response = await request.get(`/api/cfgItems/${bakServer.uuid}`).set(tokenHeaderName, internalToken)
     // assert.deepEqual(response.body.data, {})
   })

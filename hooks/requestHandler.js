@@ -192,4 +192,4 @@ const handleRequest = async (params, ctx) => {
   return params
 }
 
-module.exports = { getCategoryByUrl, handleRequest, getIndexByCategory, getCollectionByCategory, generateUniqueNameFieldAndCompoundModel,assignFields4Query }
+module.exports = { getCategoryByUrl, handleRequest, getIndexByCategory, getCollectionByCategory, generateUniqueNameFieldAndCompoundModel, assignFields4Query }

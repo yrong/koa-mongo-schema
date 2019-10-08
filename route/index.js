@@ -7,6 +7,8 @@ const hooks = require('../hooks')
 const compose = require('koa-compose')
 const Router = require('koa-router')
 const requestHandler = hooks.requestHandler
+const common = require('scirichon-common')
+const ScirichonError = common.ScirichonError
 
 const schema_checker = (params) => {
   schema.checkObject(params.data.category, params.data.fields)
@@ -23,21 +25,36 @@ const handleRequest = async (ctx) => {
   }
   params = await hooks.cudItem_preProcess(params, ctx)
   let colname = requestHandler.getCollectionByCategory(params.category)
-  let result
-  if (colname) {
+  if (!colname) {
+    throw new ScirichonError(`no mongo collection found for category ${params.category}`)
+  }
+  const collections = await ctx.db.collections()
+  const colnames = collections.map(c => c.s.namespace.collection)
+  if (!colnames.includes(colname)) {
+    await ctx.db.createCollection(colname)
+  }
+  let result; let session = await ctx.mongo.startSession()
+  session.startTransaction()
+  try {
     if (ctx.method === 'POST') {
-      result = await ctx.db.collection(colname).insert(params.fields)
+      result = await ctx.db.collection(colname).insertOne(params.fields, { session })
     } else if (ctx.method === 'PUT') {
-      result = await ctx.db.collection(colname).updateOne({ uuid: params.uuid }, { $set: params.change })
+      result = await ctx.db.collection(colname).updateOne({ uuid: params.uuid }, { $set: params.change }, { session })
     } else if (ctx.method === 'DELETE') {
-      result = await ctx.db.collection(colname).deleteOne({ uuid: params.uuid })
+      result = await ctx.db.collection(colname).deleteOne({ uuid: params.uuid }, { session })
     }
+    if (params.fields && params.fields['_id']) {
+      delete params.fields['_id']
+    }
+    result = await hooks.cudItem_postProcess(result, params, ctx)
+    await session.commitTransaction()
+    session.endSession()
+  } catch (err) {
+    await session.abortTransaction()
+    session.endSession()
+    throw err
   }
-  if (params.fields && params.fields['_id']) {
-    delete params.fields['_id']
-  }
-  result = await hooks.cudItem_postProcess(result, params, ctx)
-  return result
+  ctx.body = result
 }
 
 const handleQuery = async (ctx) => {
@@ -54,7 +71,7 @@ const handleQuery = async (ctx) => {
     }
   }
   result = await hooks.queryItems_postProcess(result, params, ctx)
-  return result || {}
+  ctx.body = result || {}
 }
 
 module.exports = (app) => {
@@ -70,29 +87,19 @@ module.exports = (app) => {
       allowed_methods.forEach((method) => {
         switch (method) {
           case 'Add':
-            router.post(val.route, async (ctx, next) => {
-              ctx.body = await handleRequest(ctx)
-            })
+            router.post(val.route, handleRequest)
             break
           case 'Modify':
-            router.put(val.route + '/:uuid', async (ctx, next) => {
-              ctx.body = await handleRequest(ctx)
-            })
+            router.put(val.route + '/:uuid', handleRequest)
             break
           case 'Delete':
-            router.del(val.route + '/:uuid', async (ctx, next) => {
-              ctx.body = await handleRequest(ctx)
-            })
+            router.del(val.route + '/:uuid', handleRequest)
             break
           case 'FindOne':
-            router.get(val.route + '/:uuid', async (ctx, next) => {
-              ctx.body = await handleQuery(ctx)
-            })
+            router.get(val.route + '/:uuid', handleQuery)
             break
           case 'FindAll':
-            router.get(val.route, async (ctx, next) => {
-              ctx.body = await handleQuery(ctx)
-            })
+            router.get(val.route, handleQuery)
             break
         }
       })
@@ -112,7 +119,7 @@ module.exports = (app) => {
   })
 
   router.post('/api/searchByMql', async (ctx) => {
-    let params = { ...{}, ...ctx.query, ...ctx.params, ...ctx.request.body },result
+    let params = { ...{}, ...ctx.query, ...ctx.params, ...ctx.request.body }; let result
     params = await requestHandler.assignFields4Query(params, ctx)
     let colname = requestHandler.getCollectionByCategory(params.category)
     if (params.pagination) {

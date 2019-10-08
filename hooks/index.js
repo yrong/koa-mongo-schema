@@ -1,15 +1,11 @@
 /* eslint camelcase: 0 */
-const common = require('scirichon-common')
 const schema = require('scirichon-json-schema')
-const ScirichonWarning = common.ScirichonWarning
-const ScirichonError = common.ScirichonError
 const logger = require('log4js-wrapper-advanced').getLogger()
 const responseHandler = require('scirichon-response-mapper')
 const requestHandler = require('./requestHandler')
 const requestPostHandler = require('./requestPostHandler')
 const cache = require('scirichon-cache')
 const search = require('scirichon-search')
-const config = require('config')
 
 module.exports = {
   requestHandler,
@@ -34,7 +30,6 @@ module.exports = {
     return params
   },
   cudItem_postProcess: async function (result, params, ctx) {
-    logger.trace(`before postprocess:\n` + JSON.stringify(params, null, 2))
     let customizedHandler = global._scirichonHandlers && global._scirichonHandlers[params.category]
     if (customizedHandler) {
       if (params.procedure && params.procedure.ignoreCustomizedHandler) {
@@ -42,30 +37,11 @@ module.exports = {
         params = await customizedHandler.postProcess(params, ctx)
       }
     }
-    if (ctx.batch === true) {
-      return params
-    } else {
-      try {
-        logger.trace(`before es operation`)
-        await requestPostHandler.updateSearch(params, ctx)
-        logger.trace(`after es operation`)
-      } catch (e) {
-        logger.error(e.stack || e)
-        if (config.get('globalTransaction')) {
-          throw new ScirichonError(String(e))
-        } else {
-          throw new ScirichonWarning(String(e))
-        }
-      } try {
-        logger.trace(`before cache operation`)
-        await Promise.all([requestPostHandler.updateCache(params, ctx), requestPostHandler.addNotification(params, ctx)])
-        logger.trace(`after cache operation`)
-      } catch (e) {
-        logger.error(e.stack || e)
-      }
-      logger.trace(`after postprocess:\n` + JSON.stringify(params, null, 2))
-      return { uuid: params.uuid } || {}
+    if (ctx.batch !== true) {
+      await requestPostHandler.updateSearch(params, ctx)
+      await Promise.all([requestPostHandler.updateCache(params, ctx), requestPostHandler.addNotification(params, ctx)])
     }
+    return params
   },
   queryItems_preProcess: async function (params, ctx) {
     params = await requestHandler.handleRequest(params, ctx)
@@ -100,8 +76,5 @@ module.exports = {
       }
     }
     return {}
-  },
-  getLicense: async function (params, ctx) {
-    return (ctx.state && ctx.state.license) || {}
   }
 }
