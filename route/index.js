@@ -1,59 +1,24 @@
 /* eslint camelcase: 0 */
 const config = require('config')
 const schema = require('scirichon-json-schema')
-const es_config = config.get('elasticsearch')
 const search = require('scirichon-search')
 const hooks = require('../hooks')
 const compose = require('koa-compose')
 const Router = require('koa-router')
 const requestHandler = hooks.requestHandler
-const common = require('scirichon-common')
-const ScirichonError = common.ScirichonError
-
-const schema_checker = (params) => {
-  schema.checkObject(params.data.category, params.data.fields)
-  return params
-}
+const createProcedure = require('../hooks/procedure').createProcedure
 
 const handleRequest = async (ctx) => {
   let params = { ...{}, ...ctx.query, ...ctx.params, ...ctx.request.body }
-  if (ctx.method === 'POST') {
-    await schema_checker(params)
-  }
-  if (es_config.mode === 'strict') {
-    await search.checkStatus()
-  }
-  params = await hooks.cudItem_preProcess(params, ctx)
-  let colname = requestHandler.getCollectionByCategory(params.category)
-  if (!colname) {
-    throw new ScirichonError(`no mongo collection found for category ${params.category}`)
-  }
-  const collections = await ctx.db.collections()
-  const colnames = collections.map(c => c.s.namespace.collection)
-  if (!colnames.includes(colname)) {
-    await ctx.db.createCollection(colname)
-  }
-  let result; let session = await ctx.mongo.startSession()
-  session.startTransaction()
-  try {
-    if (ctx.method === 'POST') {
-      result = await ctx.db.collection(colname).insertOne(params.fields, { session })
-    } else if (ctx.method === 'PUT') {
-      result = await ctx.db.collection(colname).updateOne({ uuid: params.uuid }, { $set: params.change }, { session })
-    } else if (ctx.method === 'DELETE') {
-      result = await ctx.db.collection(colname).deleteOne({ uuid: params.uuid }, { session })
-    }
-    if (params.fields && params.fields['_id']) {
-      delete params.fields['_id']
-    }
-    result = await hooks.cudItem_postProcess(result, params, ctx)
-    await session.commitTransaction()
-    session.endSession()
-  } catch (err) {
-    await session.abortTransaction()
-    session.endSession()
-    throw err
-  }
+  let procedure = createProcedure({
+    check: hooks.check,
+    preProcess: hooks.cudItem_preProcess,
+    dbProcess: hooks.dbProcess,
+    postProcess: hooks.cudItem_postProcess,
+    route: ctx.path,
+    timeout: config.get('timeout')
+  })
+  let result = await procedure(params, ctx)
   ctx.body = result
 }
 
