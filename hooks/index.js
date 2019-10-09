@@ -42,7 +42,7 @@ module.exports = {
   dbProcess: async (params, ctx) => {
     let colname = requestHandler.getCollectionByCategory(params.category)
     if (!colname) {
-      throw new ScirichonError(`no mongo collection found for category ${params.category}`)
+      throw new Error(`no mongo collection found for category ${params.category}`)
     }
     const collections = await ctx.db.collections()
     const colnames = collections.map(c => c.s.namespace.collection)
@@ -51,11 +51,11 @@ module.exports = {
     }
     let result
     if (ctx.method === 'POST') {
-      result = await ctx.db.collection(colname).insertOne(params.fields, { session:ctx.session })
+      result = await ctx.db.collection(colname).insertOne(params.fields, { session: ctx.session })
     } else if (ctx.method === 'PUT') {
-      result = await ctx.db.collection(colname).updateOne({ uuid: params.uuid }, { $set: params.change }, { session:ctx.session })
+      result = await ctx.db.collection(colname).updateOne({ uuid: params.uuid }, { $set: params.change }, { session: ctx.session })
     } else if (ctx.method === 'DELETE') {
-      result = await ctx.db.collection(colname).deleteOne({ uuid: params.uuid }, { session:ctx.session })
+      result = await ctx.db.collection(colname).deleteOne({ uuid: params.uuid }, { session: ctx.session })
     }
     if (params.fields && params.fields['_id']) {
       delete params.fields['_id']
