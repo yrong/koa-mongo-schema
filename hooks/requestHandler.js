@@ -3,10 +3,10 @@ const _ = require('lodash')
 const jp = require('jsonpath')
 const config = require('config')
 const uuid = require('uuid')
-const schema = require('scirichon-json-schema')
-const common = require('scirichon-common')
+const schema = require('api-schema-core')
+const common = require('api-schema-common')
 const ScirichonError = common.ScirichonError
-const scirichon_cache = require('scirichon-cache')
+const apiSchemaCache = require('api-schema-cache')
 
 const getCategoryByUrl = function (ctx) {
   let category; let val; let routeSchemas = schema.getApiRouteSchemas()
@@ -55,7 +55,7 @@ const assignFields4Query = async function (params, ctx) {
 }
 
 const checkReferenceObj = async (key, value) => {
-  let cached_val = await scirichon_cache.getItemByCategoryAndID(key, value)
+  let cached_val = await apiSchemaCache.getItemByCategoryAndID(key, value)
   if (!cached_val || !cached_val.uuid) {
     throw new ScirichonError(`不存在引用类型为${key},id为${value}的节点`)
   }
@@ -112,7 +112,7 @@ const generateUniqueNameFieldAndCompoundModel = async (params, ctx) => {
     for (let key of schema_obj.compoundKeys) {
       if (key !== 'name') {
         let category = _.capitalize(key)
-        let result = await scirichon_cache.getItemByCategoryAndID(category, params.fields[key])
+        let result = await apiSchemaCache.getItemByCategoryAndID(category, params.fields[key])
         if (!_.isEmpty(result)) {
           key = key + '_name'
           compound_obj[key] = result.name
@@ -129,7 +129,7 @@ const checkUniqueField = async (params, ctx) => {
   if (params.procedure && params.procedure.ignoreUniqueCheck) {
   } else {
     if (params.fields.unique_name) {
-      let obj = await scirichon_cache.getItemByCategoryAndUniqueName(params.category, params.fields.unique_name)
+      let obj = await apiSchemaCache.getItemByCategoryAndUniqueName(params.category, params.fields.unique_name)
       if (!_.isEmpty(obj)) {
         throw new ScirichonError(`${params.category}存在名为"${params.fields.unique_name}"的同名对象`)
       }

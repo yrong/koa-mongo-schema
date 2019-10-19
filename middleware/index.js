@@ -1,10 +1,10 @@
 /* eslint camelcase: 0 */
 const config = require('config')
-const scirichonCommon = require('scirichon-common')
+const apiSchemaCommon = require('api-schema-common')
 const cors = require('kcors')
 const body = require('koa-body')
-const responseWrapper = require('scirichon-response-wrapper')
-const authenticator = require('scirichon-authenticator')
+const responseWrapper = require('api-schema-response-wrapper')
+const authenticator = require('api-schema-authenticator')
 const mongo = require('koa-mongo')
 
 /**
@@ -46,7 +46,7 @@ module.exports = (app) => {
   }
   if (config.get('checkAuth')) {
     const redisOption = config.get('redis')
-    const auth_url = scirichonCommon.getServiceApiUrl('auth')
+    const auth_url = apiSchemaCommon.getServiceApiUrl('auth')
     app.use(authenticator.checkToken({ check_token_url: `${auth_url}/auth/check` }))
     app.use(authenticator.checkAcl({ redisOption }))
   }

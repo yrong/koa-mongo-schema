@@ -1,7 +1,7 @@
 /* eslint camelcase: 0 */
 const config = require('config')
-const schema = require('scirichon-json-schema')
-const search = require('scirichon-search')
+const apiSchema = require('api-schema-core')
+const apiSchemaSearch = require('api-schema-search')
 const hooks = require('../hooks')
 const compose = require('koa-compose')
 const Router = require('koa-router')
@@ -40,7 +40,7 @@ const handleQuery = async (ctx) => {
 }
 
 module.exports = (app) => {
-  let routesDef = schema.getApiRouteSchemas()
+  let routesDef = apiSchema.getApiRouteSchemas()
 
   let allowed_methods = ['Add', 'Modify', 'Delete', 'FindOne', 'FindAll']
 
@@ -79,7 +79,7 @@ module.exports = (app) => {
   router.post('/api/searchByEql', async (ctx) => {
     let params = { ...{}, ...ctx.query, ...ctx.params, ...ctx.request.body }
     params = await requestHandler.assignFields4Query(params, ctx)
-    let result = await search.searchItem(params, ctx)
+    let result = await apiSchemaSearch.searchItem(params, ctx)
     ctx.body = result
   })
 

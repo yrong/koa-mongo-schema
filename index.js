@@ -3,8 +3,8 @@
 const config = require('config')
 const path = require('path')
 const log4js_wrapper = require('log4js-wrapper-advanced')
-const scirichonSchema = require('scirichon-json-schema')
-const scirichonCache = require('scirichon-cache')
+const apiSchema = require('api-schema-core')
+const apiSchemaCache = require('api-schema-cache')
 const hooks = require('./hooks')
 const route = require('./route')
 const middleware = require('./middleware')
@@ -28,8 +28,8 @@ const initApp = async () => {
      * load schema
      */
   const schema_option = { redisOption: config.get('redis'), prefix: process.env['SCHEMA_TYPE'] || 'scirichon-schema' }
-  await scirichonSchema.initSchemas(schema_option)
-  await scirichonCache.initialize(schema_option)
+  await apiSchema.initSchemas(schema_option)
+  await apiSchemaCache.initialize(schema_option)
 
   /**
    * load route

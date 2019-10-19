@@ -1,11 +1,11 @@
 /* eslint camelcase: 0 */
-const schema = require('scirichon-json-schema')
+const schema = require('api-schema-core')
 const logger = require('log4js-wrapper-advanced').getLogger()
-const responseHandler = require('scirichon-response-mapper')
+const responseHandler = require('api-schema-response-mapper')
 const requestHandler = require('./requestHandler')
 const requestPostHandler = require('./requestPostHandler')
-const cache = require('scirichon-cache')
-const search = require('scirichon-search')
+const cache = require('api-schema-cache')
+const search = require('api-schema-search')
 const config = require('config')
 
 module.exports = {

@@ -2,10 +2,10 @@ const assert = require('chai').assert
 const uuid = require('uuid')
 const _ = require('lodash')
 const supertest = require('supertest')
-const common = require('scirichon-common')
+const common = require('api-schema-common')
 const crudHandler = require('../index')
 const config = require('config')
-const scirichonCache = require('scirichon-cache')
+const apiSchemaCache = require('api-schema-cache')
 
 let getBody = (params)=>{
   return {
@@ -88,7 +88,7 @@ describe('scirichon-crud-handler', () => {
   })
 
   it('get physicalServer', async () => {
-    await scirichonCache.flushAll()
+    await apiSchemaCache.flushAll()
     const response = await request.get(`/api/cfgItems/${physicalServer.uuid}`).set(tokenHeaderName, internalToken)
     assert.equal(response.body.data.model, 'b10')
     assert.equal(response.body.data.it_service[0].name, 'email')

@@ -1,8 +1,8 @@
 /* eslint camelcase: 0 */
-const common = require('scirichon-common')
-const schema = require('scirichon-json-schema')
-const scirichon_cache = require('scirichon-cache')
-const search = require('scirichon-search')
+const common = require('api-schema-common')
+const schema = require('api-schema-core')
+const apiSchemaCache = require('api-schema-cache')
+const search = require('api-schema-search')
 const requestHandler = require('./requestHandler')
 const config = require('config')
 
@@ -53,12 +53,12 @@ const addNotification = async (params, ctx) => {
 
 const updateCache = async (params, ctx) => {
   if (ctx.method === 'POST') {
-    await scirichon_cache.addItem(params.fields)
+    await apiSchemaCache.addItem(params.fields)
   } else if (ctx.method === 'PUT' || ctx.method === 'PATCH') {
-    await scirichon_cache.delItem(params.fields_old)
-    await scirichon_cache.addItem(params.fields)
+    await apiSchemaCache.delItem(params.fields_old)
+    await apiSchemaCache.addItem(params.fields)
   } else if (ctx.method === 'DELETE') {
-    await scirichon_cache.delItem(params.fields_old)
+    await apiSchemaCache.delItem(params.fields_old)
   }
 }
 
